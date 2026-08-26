@@ -1,0 +1,23 @@
+{
+  "name": "دبرنای فینگیلی - بازی بینگو",
+  "short_name": "فینگیلی",
+  "description": "بازی بینگو آنلاین با صدای اعداد فارسی",
+  "start_url": "/game.html",
+  "display": "fullscreen",
+  "background_color": "#0a0a16",
+  "theme_color": "#00ffff",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
