@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت فینگیلی</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
+        body{background:linear-gradient(135deg,#0f0f1f,#1a1a3a);color:#fff;min-height:100vh;padding:20px;direction:rtl}
+        .login-container,.panel-container{background:rgba(10,10,30,.95);border-radius:20px;padding:30px;max-width:500px;margin:0 auto;border:2px solid #0cf}
+        .panel-container{max-width:1400px;display:none}
+        h2{color:#0fa;text-align:center;margin-bottom:25px}
+        .input-group{margin-bottom:20px}
+        .input-group label{display:block;margin-bottom:8px;color:#0cf}
+        .input-group input{width:100%;padding:12px;border-radius:10px;border:2px solid #0cf;background:rgba(0,0,0,.5);color:#fff}
+        .btn-login{width:100%;padding:12px;background:linear-gradient(45deg,#0c6,#094);border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:700;cursor:pointer}
+        .stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}
+        .stat-card{background:rgba(0,0,0,.5);border-radius:15px;padding:15px 25px;text-align:center;border:1px solid #0cf}
+        .stat-number{font-size:32px;font-weight:700;color:#0fa}
+        .admin-tabs{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;border-bottom:2px solid #0cf;padding-bottom:10px}
+        .tab-btn{background:rgba(0,204,255,.2);border:2px solid #0cf;color:#0cf;padding:10px 25px;border-radius:30px;cursor:pointer;font-weight:700}
+        .tab-btn.active,.tab-btn:hover{background:#0cf;color:#000}
+        .refresh-btn{background:#fa0;border:none;color:#000;padding:8px 20px;border-radius:30px;cursor:pointer;font-weight:700}
+        .request-card,.user-card{background:rgba(30,30,60,.9);border-radius:15px;padding:20px;margin-bottom:15px;border-right:5px solid #fc0}
+        .request-card.pending{border-right-color:#fc0;animation:pulse 1.5s infinite}
+        .request-card.approved{border-right-color:#0fa;opacity:.7}
+        .request-card.rejected{border-right-color:#f44;opacity:.7}
+        .request-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:15px;gap:10px}
+        .user-name{color:#0fa;font-size:20px;font-weight:700}
+        .amount{color:#fc0;font-size:22px;font-weight:700}
+        .details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:15px}
+        .detail{background:rgba(0,0,0,.3);padding:8px;border-radius:8px}
+        .detail-label{font-size:11px;color:#0cf}
+        .actions{display:flex;gap:10px;margin-top:10px}
+        .btn-approve,.btn-reject{padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+        .btn-approve{background:#0c6;color:#fff}
+        .btn-reject{background:#f44;color:#fff}
+        .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+        .status-pending{background:#fc0;color:#000}
+        .status-approved{background:#0fa;color:#000}
+        .status-rejected{background:#f44;color:#fff}
+        .balance-form{background:rgba(30,30,60,.9);border-radius:15px;padding:25px;margin-bottom:30px}
+        .balance-form input,.balance-form select{width:100%;padding:12px;margin-bottom:15px;border-radius:8px;border:2px solid #0cf;background:rgba(0,0,0,.5);color:#fff}
+        .search-input{width:100%;padding:12px;margin-bottom:20px;border-radius:10px;border:2px solid #0cf;background:rgba(0,0,0,.5);color:#fff}
+        .user-card{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}
+        .logout-btn{background:linear-gradient(45deg,#f44,#c00);color:#fff;border:none;padding:10px 25px;border-radius:30px;cursor:pointer;font-weight:700;margin-top:30px}
+        @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,204,0,.4)}70%{box-shadow:0 0 0 10px rgba(255,204,0,0)}100%{box-shadow:0 0 0 0 rgba(255,204,0,0)}}
+        .notification{position:fixed;top:20px;right:20px;padding:15px 25px;border-radius:10px;color:#fff;font-weight:700;z-index:1000;animation:slideIn .3s}
+        .notification.success{background:#0c6}
+        .notification.error{background:#f44}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    </style>
+</head>
+<body>
+<div class="login-container" id="loginContainer">
+    <h2>🔐 ورود به پنل مدیریت</h2>
+    <div class="input-group"><label>👤 نام کاربری</label><input type="text" id="loginUsername" placeholder="نام کاربری"></div>
+    <div class="input-group"><label>🔒 رمز عبور</label><input type="password" id="loginPassword" placeholder="رمز عبور"></div>
+    <button class="btn-login" onclick="login()">ورود به پنل</button>
+</div>
+
+<div class="panel-container" id="panelContainer">
+    <div class="stats" id="statsPanel"></div>
+    <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="requests">📋 درخواست‌های برداشت</button>
+        <button class="tab-btn" data-tab="gift">🎁 هدیه</button>
+        <button class="tab-btn" data-tab="users">👥 کاربران</button>
+        <button class="tab-btn refresh-btn" data-tab="refresh">🔄 رفرش</button>
+    </div>
+    <div id="requestsTab"><div id="requestsList"></div></div>
+    <div id="giftTab" style="display:none">
+        <div class="balance-form">
+            <input type="text" id="giftUsername" placeholder="نام کاربری">
+            <input type="text" id="giftPhone" placeholder="شماره تماس">
+            <input type="number" id="giftAmount" placeholder="مبلغ (تومان)">
+            <select id="giftType"><option value="add">➕ افزایش</option><option value="remove">➖ کاهش</option><option value="set">📌 تنظیم</option></select>
+            <input type="text" id="giftDesc" placeholder="شرح">
+            <button class="btn-approve" onclick="applyGift()">💾 اعمال</button>
+        </div>
+        <div id="giftResult"></div>
+    </div>
+    <div id="usersTab" style="display:none">
+        <input type="text" id="searchUserInput" class="search-input" placeholder="🔍 جستجو...">
+        <div id="usersList"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">🚪 خروج</button>
+</div>
+<div id="notification" class="notification" style="display:none"></div>
+
+<script>
+const ADMIN_USER = "Rafaeldadashi";
+const ADMIN_PASS = "Rafaeldadashi11";
+// ===== ورود به پنل مدیریت =====
+function login() {
+    let u = document.getElementById('loginUsername').value.trim();
+    let p = document.getElementById('loginPassword').value;
+    if (u === ADMIN_USER && p === ADMIN_PASS) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('panelContainer').style.display = 'block';
+        loadStats(); loadRequests(); loadUsers();
+        if (window.autoRefresh) clearInterval(window.autoRefresh);
+        window.autoRefresh = setInterval(() => { loadRequests(); loadStats(); }, 10000);
+        showNotification('ورود موفق', 'success');
+    } else showNotification('نام کاربری یا رمز اشتباه است', 'error');
+}
+function showNotification(msg, type) {
+    let n = document.getElementById('notification');
+    n.textContent = msg;
+    n.className = `notification ${type}`;
+    n.style.display = 'block';
+    setTimeout(() => n.style.display = 'none', 4000);
+}
+function logout() {
+document.getElementById('loginContainer').style.display = 'block';
+    document.getElementById('panelContainer').style.display = 'none';
+    if (window.autoRefresh) clearInterval(window.autoRefresh);
+}
+
+function loadStats() {
+    fetch('/api/admin/dashboard')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('statsPanel').innerHTML = `
+                <div class="stat-card"><div class="stat-number">${data.totalTransactions || 0}</div><div>کل تراکنش‌ها</div></div>
+                <div class="stat-card"><div class="stat-number">${data.pendingWithdrawals || 0}</div><div>درخواست‌های در انتظار</div></div>
+                <div class="stat-card"><div class="stat-number">${data.totalUsers || 0}</div><div>کاربران</div></div>
+            `;
+        })
+        .catch(err => {
+            console.error('خطا در بارگذاری آمار:', err);
+        });
+}
+function loadRequests() {
+    fetch('/api/admin/withdrawals')
+        .then(res => res.json())
+        .then(data => {
+            let all = data || [];
+            let filtered = all.filter(r => r.amount >= 200000);
+            filtered.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            let container = document.getElementById('requestsList');
+            if (!filtered.length) { container.innerHTML = '<div style="text-align:center;padding:40px;">📭 درخواستی وجود ندارد</div>'; return; }
+            container.innerHTML = '';
+            filtered.forEach(r => {
+                let div = document.createElement('div');
+                div.className = `request-card ${r.status}`;
+                div.setAttribute('data-id', r.id);
+                div.innerHTML = `
+<div class="request-header">
+    <span class="user-name">👤 ${r.username}</span>
+    <span class="amount">💰 ${Number(r.amount).toLocaleString()} تومان</span>
+    <span class="status-badge status-${r.status}">${r.status === 'pending' ? '⏳ در انتظار' : r.status === 'approved' ? '✅ تایید شده' : '❌ رد شده'}</span>
+</div>
+<div class="details-grid">
+    <div class="detail">
+        <div class="detail-label">📞 تماس</div>
+        <div class="detail-value">${r.phone || r.userId || '-'}</div>
+    </div>
+    <div class="detail">
+        <div class="detail-label">💳 کارت</div>
+        <div class="detail-value">${r.cardNumber || '-'}</div>
+    </div>
+    <div class="detail">
+        <div class="detail-label">📅 تاریخ</div>
+        <div class="detail-value">${r.requestDate || r.date || new Date(r.timestamp).toLocaleDateString('fa-IR')}</div>
+    </div>
+    <div class="detail">
+        <div class="detail-label">⏰ ساعت</div>
+        <div class="detail-value">${r.requestTime || r.time || new Date(r.timestamp).toLocaleTimeString('fa-IR')}</div>
+    </div>
+</div>
+<div style="display:flex; gap:10px; margin-top:10px; justify-content:space-between; flex-wrap:wrap;">
+    ${r.status === 'pending' ? `<button class="btn-approve" onclick="approveReq('${r.id}')">✅ تایید</button><button class="btn-reject" onclick="rejectReq('${r.id}')">❌ رد</button>` : ''}
+    <button class="btn-reject" onclick="deleteRequest('${r.id}')" style="background:#f44;">🗑️ حذف</button>
+</div>
+                `;
+                container.appendChild(div);
+            });
+            loadStats();
+        })
+        .catch(err => {
+            console.error('خطا در بارگذاری درخواست‌ها:', err);
+            document.getElementById('requestsList').innerHTML = '<div style="text-align:center;padding:40px;color:#f44;">❌ خطا در ارتباط با سرور</div>';
+        });
+}
+
+function rejectReq(id) {
+    fetch('/api/admin/withdrawals/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, status: 'rejected' })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('❌ درخواست رد شد', 'info');
+            loadRequests();
+        } else {
+            showNotification('❌ خطا در رد: ' + (result.error || 'نامشخص'), 'error');
+        }
+    })
+    .catch(err => {
+        showNotification('❌ خطا در ارتباط با سرور', 'error');
+        console.error(err);
+    });
+}
+function approveReq(id) {
+    fetch('/api/admin/withdrawals/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('✅ درخواست تایید شد', 'success');
+            loadRequests();
+        } else {
+            showNotification('❌ خطا در تایید: ' + (result.error || 'نامشخص'), 'error');
+        }
+    })
+    .catch(err => {
+        showNotification('❌ خطا در ارتباط با سرور', 'error');
+        console.error(err);
+    });
+}
+function deleteRequest(id) {
+    if (confirm('آیا از حذف این درخواست مطمئن هستید؟')) {
+        fetch('/api/admin/withdrawals/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showNotification('✅ درخواست حذف شد', 'success');
+                loadRequests();
+            } else {
+                showNotification('❌ خطا در حذف: ' + (result.error || 'نامشخص'), 'error');
+            }
+        })
+        .catch(err => {
+            showNotification('❌ خطا در ارتباط با سرور', 'error');
+            console.error(err);
+        });
+    }
+}
+function loadUsers() {
+    fetch('/api/admin/users')
+        .then(res => res.json())
+        .then(data => {
+            let users = data || [];
+            let search = document.getElementById('searchUserInput')?.value.toLowerCase() || '';
+            if (search) users = users.filter(u => u.username.toLowerCase().includes(search) || u.phone.includes(search));
+            users.sort((a,b) => b.balance - a.balance);
+            let container = document.getElementById('usersList');
+            if (!users.length) { container.innerHTML = '<div style="text-align:center;padding:40px;">📭 کاربری یافت نشد</div>'; return; }
+            container.innerHTML = '';
+            users.forEach(u => {
+                let div = document.createElement('div');
+                div.className = 'user-card';
+let isBanned = u.status === 'banned' || u.status === 'deleted';
+                div.innerHTML = `<div><div class="user-name">👤 ${u.username}</div><div>📞 ${u.phone}</div></div><div class="amount">💰 ${u.balance.toLocaleString()} تومان</div><div style="display:flex;gap:5px;margin-top:10px;"><button class="btn-approve" onclick="quickGift('${u.username}')">🎁 هدیه</button><button class="btn-reject" onclick="banUser('${u.phone}','${u.username}')" style="background:#f44;${isBanned ? 'opacity:0.5;pointer-events:none;' : ''}">${isBanned ? '✅ غیرفعال شده' : '🚫 غیرفعال'}</button></div>`;
+                container.appendChild(div);
+            });
+        })
+        .catch(err => {
+            console.error('خطا در بارگذاری کاربران:', err);
+            document.getElementById('usersList').innerHTML = '<div style="text-align:center;padding:40px;color:#f44;">❌ خطا در ارتباط با سرور</div>';
+        });
+}
+function banUser(phone, username) {
+    if (confirm(`آیا کاربر "${username}" حذف شود؟`)) {
+        fetch('/api/admin/user/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showNotification(`🗑️ کاربر "${username}" حذف شد`, 'success');
+                loadUsers();
+                loadStats();
+            } else {
+                showNotification('❌ خطا در حذف کاربر: ' + (result.error || 'نامشخص'), 'error');
+            }
+        })
+        .catch(err => {
+            showNotification('❌ خطا در ارتباط با سرور', 'error');
+            console.error(err);
+        });
+    }
+}
+function quickGift(username) {
+    document.querySelector('.tab-btn[data-tab="gift"]').click();
+    document.getElementById('giftUsername').value = username;
+    document.getElementById('giftAmount').value = 10000;
+    document.getElementById('giftType').value = 'add';
+    showNotification(`مبلغ ۱۰,۰۰۰ برای ${username} آماده است`, 'info');
+}
+
+function applyGift() {
+    let username = document.getElementById('giftUsername').value.trim();
+    let phone = document.getElementById('giftPhone').value.trim();
+    let amount = parseInt(document.getElementById('giftAmount').value);
+    let type = document.getElementById('giftType').value;
+    let desc = document.getElementById('giftDesc').value.trim() || 'هدیه از مدیریت';
+    
+    if ((!username && !phone) || isNaN(amount) || amount <= 0) { 
+        showNotification('اطلاعات کامل نیست', 'error'); 
+        return; 
+    }
+    
+    // پیدا کردن کاربر از سرور
+    fetch('/api/admin/users')
+        .then(res => res.json())
+        .then(users => {
+            let target = users.find(u => u.username === username || u.phone === phone);
+            if (!target) {
+                showNotification('کاربر یافت نشد', 'error');
+                return;
+            }
+            
+            // شارژ کاربر از طریق API
+            fetch('/api/admin/charge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: target.phone,
+                    amount: type === 'add' ? amount : (type === 'remove' ? -amount : amount - target.balance),
+                    description: desc
+                })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification(`✅ ${type === 'add' ? 'افزایش' : type === 'remove' ? 'کاهش' : 'تنظیم'} موجودی ${target.username} انجام شد`, 'success');
+                    document.getElementById('giftResult').innerHTML = `<div style="color:#0fa;padding:15px;">✅ عملیات موفق</div>`;
+                    loadUsers(); loadStats();
+                } else {
+                    showNotification('❌ خطا: ' + (result.error || 'نامشخص'), 'error');
+                }
+            });
+        })
+        .catch(err => {
+            showNotification('❌ خطا در ارتباط با سرور', 'error');
+            console.error(err);
+        });
+}
+function banUser(phone, username) {
+    if (confirm(`آیا کاربر "${username}" حذف شود؟`)) {
+        fetch('/api/admin/user/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showNotification(`🗑️ کاربر "${username}" حذف شد`, 'success');
+                loadUsers();
+                loadStats();
+            } else {
+                showNotification('❌ خطا در حذف کاربر: ' + (result.error || 'نامشخص'), 'error');
+            }
+        })
+        .catch(err => {
+            showNotification('❌ خطا در ارتباط با سرور', 'error');
+            console.error(err);
+        });
+    }
+}
+function switchTab(tab) {
+    document.getElementById('requestsTab').style.display = tab === 'requests' ? 'block' : 'none';
+    document.getElementById('giftTab').style.display = tab === 'gift' ? 'block' : 'none';
+    document.getElementById('usersTab').style.display = tab === 'users' ? 'block' : 'none';
+    if (tab === 'requests') loadRequests();
+    if (tab === 'users') loadUsers();
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+        let tab = btn.getAttribute('data-tab');
+        if (tab === 'refresh') { loadRequests(); loadUsers(); loadStats(); showNotification('🔄 به‌روز شد', 'success'); }
+        else switchTab(tab);
+    };
+});
+document.getElementById('searchUserInput')?.addEventListener('input', () => loadUsers());
+</script>
+</body>
+</html>
